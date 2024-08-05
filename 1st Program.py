@@ -1,48 +1,25 @@
 import csv
 
-hypo = ['%', '%', '%', '%', '%', '%']
-
-with open(r"C:\Users\sruja\MachineLearning\pythonProject\enjoysport.csv") as csv_file:
+with open(r"enjoysport.csv") as csv_file:
     readcsv = csv.reader(csv_file, delimiter=',')
-    print(readcsv)
+    data = [row for row in readcsv]
 
-    data = []
-    print("\nThe given training examples are:")
-    for row in readcsv:
-        print(row)
-        if row[len(row) - 1].upper() == "YES":
-            data.append(row)
+headers = data[0]
+data = data[1:]
 
-    print("\nThe positive examples are:")
-    for x in data:
-        print(x)
-    print("\n")
+positive_examples = [row for row in data if row[-1].upper() == "YES"]
 
-    TotalExamples = len(data)
-    i = 0
-    j = 0
-    k = 0
-    print("The steps of the Find-s algorithm are\n", hypo)
+print("\nThe positive examples are:")
+for x in positive_examples:
+    print(x)
+print("\n")
 
-    list = []
-    p = 0
-    d = len(data[p]) - 1
+hypo = positive_examples[0][:-1]
 
-    for j in range(d):
-        list.append(data[i][j])
-    hypo = list
+for i in range(1, len(positive_examples)):
+    for j in range(len(hypo)):
+        if hypo[j] != positive_examples[i][j]:
+            hypo[j] = '?'
 
-    i = 1
-    for i in range(TotalExamples):
-        for k in range(d):
-            if hypo[k] != data[i][k]:
-                hypo[k] = '?'
-            else:
-                hypo[k] = hypo[k]
-        print(hypo)
-
-    print("\nThe maximally specific Find-s hypothesis for the given training examples is")
-    list = []
-    for i in range(d):
-        list.append(hypo[i])
-    print(list)
+print("\nThe maximally specific Find-S hypothesis for the given training examples is:")
+print(hypo)
