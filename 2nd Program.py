@@ -1,55 +1,32 @@
 import numpy as np
 import pandas as pd
 
-# Loading Data from a CSV File
-data = pd.DataFrame(data=pd.read_csv(r"C:\Users\sruja\MachineLearning\pythonProject\candidate.csv"))
-
-# Separating concept features from Target
-concepts = np.array(data.iloc[:, 0:-1])
-
-# Isolating target into a separate DataFrame
-# copying last column to target array
+data = pd.read_csv("candidate.csv")
+concepts = np.array(data.iloc[:, :-1])
 target = np.array(data.iloc[:, -1])
-
 
 def learn(concepts, target):
     specific_h = concepts[0].copy()
-    print("initialization of specific_h and general_h")
-    print(specific_h)
-
-    general_h = [["?" for i in range(len(specific_h))] for i in range(len(specific_h))]
-    print(general_h)
+    general_h = [['?' for _ in range(len(specific_h))] for _ in range(len(specific_h))]
 
     for i, h in enumerate(concepts):
-
         if target[i] == "Yes":
-            for x in range(len(specific_h)):
-
-                if h[x] != specific_h[x]:
-                    specific_h[x] = '?'
-                    general_h[x][x] = '?'
-
-
-        if target[i] == "No":
-            for x in range(len(specific_h)):
-                # For negative hypothesis change values only in G
-                if h[x] != specific_h[x]:
-                    general_h[x][x] = specific_h[x]
+            specific_h = [s if s == x else '?' for s, x in zip(specific_h, h)]
+            general_h = [[g if g == '?' else s for g, s in zip(row, specific_h)] for row in general_h]
+        elif target[i] == "No":
+            for j in range(len(specific_h)):
+                if h[j] != specific_h[j]:
+                    general_h[j][j] = specific_h[j]
                 else:
-                    general_h[x][x] = '?'
+                    general_h[j][j] = '?'
+        
+        print(f"Step {i + 1} of Candidate Elimination Algorithm")
+        print("Specific_h:", specific_h)
+        print("General_h:", general_h)
 
-        print("steps of Candidate Elimination Algorithm", i + 1)
-        print(specific_h)
-        print(general_h)
-
-
-    indices = [i for i, val in enumerate(general_h) if val == ['?', '?', '?', '?', '?', '?']]
-    for i in indices:
-        # remove those rows from general_h
-        general_h.remove(['?', '?', '?', '?', '?', '?'])
-
+    general_h = [row for row in general_h if any(v != '?' for v in row)]
+    
     return specific_h, general_h
-
 
 s_final, g_final = learn(concepts, target)
 print("Final Specific_h:", s_final, sep="\n")
