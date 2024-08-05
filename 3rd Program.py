@@ -2,10 +2,12 @@ import pandas as pd
 import numpy as np
 from sklearn.datasets import load_iris
 from sklearn import tree
+import matplotlib.pyplot as plt
 
 iris = load_iris()
-print(iris.feature_names)
-print(iris.target_names)
+
+print("Feature names:", iris.feature_names)
+print("Target names:", iris.target_names)
 
 removed = [0, 50, 100]
 new_target = np.delete(iris.target, removed)
@@ -19,4 +21,6 @@ prediction = clf.predict(iris.data[removed])
 print("Original Labels:", iris.target[removed])
 print("Labels Predicted:", prediction)
 
-tree.plot_tree(clf)
+plt.figure(figsize=(12, 8))
+tree.plot_tree(clf, feature_names=iris.feature_names, class_names=iris.target_names, filled=True)
+plt.show()
