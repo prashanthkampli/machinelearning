@@ -1,50 +1,45 @@
 import numpy as np
-import csv
-import bayespy as bp
-from colorama import init
+import pandas as pd
+from sklearn.preprocessing import LabelEncoder
 
-init()
+data = pd.read_csv('heart_disease_data.csv')
 
-enums = {
-    'age': {'SuperSeniorCitizen': 0, 'SeniorCitizen': 1, 'MiddleAged': 2, 'Youth': 3, 'Teen': 4},
-    'gender': {'Male': 0, 'Female': 1},
-    'familyHistory': {'Yes': 0, 'No': 1},
-    'diet': {'High': 0, 'Medium': 1, 'Low': 2},
-    'lifeStyle': {'Athlete': 0, 'Active': 1, 'Moderate': 2, 'Sedentary': 3},
-    'cholesterol': {'High': 0, 'BorderLine': 1, 'Normal': 2},
-    'heartDisease': {'Yes': 0, 'No': 1}
-}
+label_encoders = {}
+for column in data.columns:
+    if data[column].dtype == 'object':
+        le = LabelEncoder()
+        data[column] = le.fit_transform(data[column])
+        label_encoders[column] = le
 
-with open('heart_disease_data.csv', 'r') as csvfile:
-    reader = csv.DictReader(csvfile)
-    data = []
-    for row in reader:
-        row_data = [enums[key][row[key]] for key in enums.keys()]
-        data.append(row_data)
+X = data.drop(columns='heartDisease').values
+y = data['heartDisease'].values
 
-data = np.array(data)
-N = len(data)
+p_heart_disease = np.mean(y == 0)
+p_no_heart_disease = np.mean(y == 1)
 
-def create_categorical_node(enum_key, num_values):
-    p = bp.nodes.Dirichlet(1.0 * np.ones(num_values))
-    node = bp.nodes.Categorical(p, plates=(N,))
-    node.observe(data[:, list(enums.keys()).index(enum_key)])
-    return node, p
-
-nodes = {key: create_categorical_node(key, len(values)) for key, values in enums.items() if key != 'heartDisease'}
-
-plate_sizes = tuple(len(values) for values in enums.values() if len(values) > 1)
-p_heartdisease = bp.nodes.Dirichlet(np.ones(2), plates=plate_sizes)
-heartdisease = bp.nodes.MultiMixture(list(nodes.values()), bp.nodes.Categorical, p_heartdisease)
-heartdisease.observe(data[:, enums['heartDisease']['Yes']])
-p_heartdisease.update()
+feature_probs = {}
+for i, column in enumerate(data.columns[:-1]):
+    feature_probs[column] = {}
+    for value in np.unique(X[:, i]):
+        p_value_given_hd = np.mean(X[y == 0, i] == value)
+        p_value_given_no_hd = np.mean(X[y == 1, i] == value)
+        feature_probs[column][value] = (p_value_given_hd, p_value_given_no_hd)
 
 while True:
-    inputs = [int(input(f'Enter {k} ({", ".join(v.keys())}): ')) for k, v in enums.items() if k != 'heartDisease']
-    inputs_array = np.array([inputs])
-    inputs_node = bp.nodes.Categorical(bp.nodes.Dirichlet(np.ones(len(enums)), plates=(1,)), plates=(1,))
-    inputs_node.observe(inputs_array)
-    prob = heartdisease.get_moments()[0][enums['heartDisease']['Yes']]
-    print(f"Probability(HeartDisease) = {prob:.4f}")
+    inputs = [int(input(f'Enter {col} ({", ".join(map(str, np.unique(X[:, i])))}): ')) for i, col in enumerate(data.columns[:-1])]
+    
+    likelihood_hd = p_heart_disease
+    likelihood_no_hd = p_no_heart_disease
+    
+    for i, col in enumerate(data.columns[:-1]):
+        value = inputs[i]
+        if value in feature_probs[col]:
+            p_value_given_hd, p_value_given_no_hd = feature_probs[col][value]
+            likelihood_hd *= p_value_given_hd
+            likelihood_no_hd *= p_value_given_no_hd
+    
+    p_hd_given_inputs = likelihood_hd / (likelihood_hd + likelihood_no_hd)
+    print(f"Probability of Heart Disease = {p_hd_given_inputs:.4f}")
+    
     if int(input("Enter 0 to Continue, 1 to Exit: ")) == 1:
         break
