@@ -1,1 +1,1 @@
-21AIL66 Machine Learning
+21AIL66 Machine Learning Laboratory
